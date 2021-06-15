@@ -92,7 +92,7 @@ public:
 protected:
     JS_EXPORT_PRIVATE DefaultGCActivityCallback(Heap*, CFRunLoopRef);
 #endif
-#if USE(CF) || PLATFORM(EFL)
+#if USE(CF) || PLATFORM(EFL) || PLATFORM(ANDROID)
 protected:
     void cancelTimer();
     void scheduleTimer(double);

@@ -8832,7 +8832,7 @@
 			buildSettings = {
 				ARCHS = "$(ARCHS_STANDARD_INCLUDING_64_BIT)";
 				PRODUCT_NAME = JSCLLIntOffsetsExtractor;
-				SDKROOT = iphoneos7.0;
+				SDKROOT = iphoneos7.1;
 				VALID_ARCHS = "armv7 armv7s arm64";
 			};
 			name = Debug;
@@ -8843,7 +8843,7 @@
 			buildSettings = {
 				ARCHS = "$(ARCHS_STANDARD_INCLUDING_64_BIT)";
 				PRODUCT_NAME = JSCLLIntOffsetsExtractor;
-				SDKROOT = iphoneos7.0;
+				SDKROOT = iphoneos7.1;
 				VALID_ARCHS = "armv7 armv7s arm64";
 			};
 			name = Release;
@@ -8854,7 +8854,7 @@
 			buildSettings = {
 				ARCHS = "$(ARCHS_STANDARD_INCLUDING_64_BIT)";
 				PRODUCT_NAME = JSCLLIntOffsetsExtractor;
-				SDKROOT = iphoneos7.0;
+				SDKROOT = iphoneos7.1;
 				VALID_ARCHS = "armv7 armv7s arm64";
 			};
 			name = Profiling;
@@ -8865,7 +8865,7 @@
 			buildSettings = {
 				ARCHS = "$(ARCHS_STANDARD_INCLUDING_64_BIT)";
 				PRODUCT_NAME = JSCLLIntOffsetsExtractor;
-				SDKROOT = iphoneos7.0;
+				SDKROOT = iphoneos7.1;
 				VALID_ARCHS = "armv7 armv7s arm64";
 			};
 			name = Production;

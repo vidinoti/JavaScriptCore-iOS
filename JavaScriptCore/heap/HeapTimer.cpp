@@ -37,11 +37,30 @@
 #include <Ecore.h>
 #endif
 
+ #if PLATFORM(ANDROID)
+
+#include "VidiModules/Vision/VDARObject.h"
+
+namespace VDAR {
+
+    class RenderingEngine : public VDARObject {
+        
+    public:
+
+        void addTimer(const Timer t) ;
+
+        void removeTimer(unsigned int tID);
+       
+        static RenderingEngine* getInstance();
+
+    };
+    
+}
+#endif
+
 namespace JSC {
 
-#if USE(CF)
-    
-const CFTimeInterval HeapTimer::s_decade = 60 * 60 * 24 * 365 * 10;
+#if USE(CF) || PLATFORM(ANDROID)
 
 static const void* retainAPILock(const void* info)
 {
@@ -54,6 +73,13 @@ static void releaseAPILock(const void* info)
     static_cast<JSLock*>(const_cast<void*>(info))->deref();
 }
 
+#endif
+
+#if USE(CF)
+    
+const CFTimeInterval HeapTimer::s_decade = 60 * 60 * 24 * 365 * 10;
+
+
 HeapTimer::HeapTimer(VM* vm, CFRunLoopRef runLoop)
     : m_vm(vm)
     , m_runLoop(runLoop)
@@ -62,8 +88,8 @@ HeapTimer::HeapTimer(VM* vm, CFRunLoopRef runLoop)
     m_context.info = &vm->apiLock();
     m_context.retain = retainAPILock;
     m_context.release = releaseAPILock;
-    m_timer = adoptCF(CFRunLoopTimerCreate(0, s_decade, s_decade, 0, 0, HeapTimer::timerDidFire, &m_context));
     CFRunLoopAddTimer(m_runLoop.get(), m_timer.get(), kCFRunLoopCommonModes);
+    m_timer = adoptCF(CFRunLoopTimerCreate(0, s_decade, s_decade, 0, 0, HeapTimer::timerDidFire, &m_context));
 }
 
 HeapTimer::~HeapTimer()
@@ -74,6 +100,7 @@ HeapTimer::~HeapTimer()
 
 void HeapTimer::timerDidFire(CFRunLoopTimerRef timer, void* context)
 {
+    dataLog("Heap timer fireing...\n");
     JSLock* apiLock = static_cast<JSLock*>(context);
     apiLock->lock();
 
@@ -94,6 +121,7 @@ void HeapTimer::timerDidFire(CFRunLoopTimerRef timer, void* context)
 
     {
         APIEntryShim shim(vm);
+        dataLog("Heap timer do work...\n");
         heapTimer->doWork();
     }
 
@@ -118,6 +146,69 @@ HeapTimer::~HeapTimer()
 void HeapTimer::timerDidFire()
 {
     doWork();
+}
+
+void HeapTimer::invalidate()
+{
+}
+
+#elif PLATFORM(ANDROID)
+
+
+
+HeapTimer::HeapTimer(VM* vm)
+    : m_vm(vm)
+{
+
+    JSLock *ptrLock = &vm->apiLock();
+
+    retainAPILock(ptrLock);
+
+    m_timer = new VDAR::Timer( 60 * 60 * 24 * 365 * 10, true, [ptrLock](VDAR::Timer * t) {
+        timerDidFire(t,ptrLock);
+    }, [ptrLock](VDAR::Timer * t) {
+        releaseAPILock(ptrLock);
+    });
+
+}
+
+HeapTimer::~HeapTimer()
+{
+    if(m_timer) {
+        if(m_timer->isValid()) {
+             VDAR::RenderingEngine::getInstance()->removeTimer(m_timer->getID());
+        }
+        delete m_timer;
+    }
+}
+
+void HeapTimer::timerDidFire(VDAR::Timer * timer, void *lock)
+{
+    JSLock* apiLock = static_cast<JSLock*>(lock);
+
+    apiLock->lock();
+
+    VM* vm = apiLock->vm();
+    // The VM has been destroyed, so we should just give up.
+    if (!vm) {
+        apiLock->unlock();
+        return;
+    }
+
+    HeapTimer* heapTimer = 0;
+    if (vm->heap.activityCallback() && vm->heap.activityCallback()->m_timer->getID() == timer->getID())
+        heapTimer = vm->heap.activityCallback();
+    else if (vm->heap.sweeper()->m_timer->getID() == timer->getID())
+        heapTimer = vm->heap.sweeper();
+    else
+        RELEASE_ASSERT_NOT_REACHED();
+
+    {
+        APIEntryShim shim(vm);
+        heapTimer->doWork();
+    }
+
+    apiLock->unlock();
 }
 
 void HeapTimer::invalidate()

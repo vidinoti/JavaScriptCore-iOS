@@ -76,9 +76,12 @@ static void profilingTimer(int, siginfo_t*, void* uap)
 #elif OS(LINUX) && CPU(X86)
 static void profilingTimer(int, siginfo_t*, void* uap)
 {
+#ifdef REG_EIP
     mcontext_t context = static_cast<ucontext_t*>(uap)->uc_mcontext;
+
     CodeProfiling::sample(reinterpret_cast<void*>(context.gregs[REG_EIP]),
                           reinterpret_cast<void**>(context.gregs[REG_EBP]));
+#endif
 }
 #endif
 

@@ -426,7 +426,7 @@ LLINT_SLOW_PATH_DECL(stack_check)
     dataLogF("CodeBlock = %p.\n", exec->codeBlock());
     dataLogF("Num callee registers = %u.\n", exec->codeBlock()->m_numCalleeRegisters);
     dataLogF("Num vars = %u.\n", exec->codeBlock()->m_numVars);
-    dataLogF("Current end is at %p.\n", exec->vm().interpreter->stack().end());
+    dataLogF("Current end is at %p.\n", exec->vm().interpreter->stack().getBaseOfStack());
 #endif
     ASSERT(!exec->vm().interpreter->stack().containsAddress(&exec->registers()[virtualRegisterForLocal(exec->codeBlock()->m_numCalleeRegisters).offset()]));
     if (UNLIKELY(!vm.interpreter->stack().grow(&exec->registers()[virtualRegisterForLocal(exec->codeBlock()->m_numCalleeRegisters).offset()]))) {

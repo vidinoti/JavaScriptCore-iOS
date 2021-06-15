@@ -152,7 +152,7 @@
 #endif
 
 /* CPU(ARM64) - Apple */
-#if defined(__arm64__) && defined(__APPLE__)
+#if defined(__arm64__) && (defined(__APPLE__) || TARGET_ANDROID || ANDROID)
 #define WTF_CPU_ARM64 1
 #endif
 
@@ -441,6 +441,9 @@
 #define WTF_PLATFORM_MAC 1
 #elif OS(WINDOWS)
 #define WTF_PLATFORM_WIN 1
+#elif TARGET_ANDROID || ANDROID
+#define WTF_PLATFORM_ANDROID 1
+#define WTF_OS_ANDROID 1
 #endif
 
 /* PLATFORM(IOS) */
@@ -727,8 +730,8 @@
    low-level interpreter. */
 #if !defined(ENABLE_LLINT) \
     && ENABLE(JIT) \
-    && (OS(DARWIN) || OS(LINUX)) \
-    && (PLATFORM(MAC) || PLATFORM(IOS) || PLATFORM(GTK)) \
+    && (OS(DARWIN) || OS(LINUX) || OS(ANDROID)) \
+    && (PLATFORM(MAC) || PLATFORM(IOS) || PLATFORM(GTK) || PLATFORM(ANDROID)) \
     && (CPU(X86) || CPU(X86_64) || CPU(ARM_THUMB2) || CPU(ARM_TRADITIONAL) || CPU(ARM64) || CPU(MIPS) || CPU(SH4))
 #define ENABLE_LLINT 1
 #endif

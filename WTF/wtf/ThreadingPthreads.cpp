@@ -59,6 +59,13 @@
 #include <objc/objc-auto.h>
 #endif
 
+#if OS(ANDROID)
+#include "jni.h"
+
+extern JavaVM* VDARgetCurrentJavaVM();
+
+#endif
+
 namespace WTF {
 
 class PthreadState {
@@ -196,6 +203,46 @@ static void* wtfThreadEntryPoint(void* param)
     return nullptr;
 }
 
+
+
+#if OS(ANDROID)
+
+static void* runThreadWithRegistration(void* param)
+{   
+    JavaVM* vm = VDARgetCurrentJavaVM();
+    JNIEnv* env;
+
+    JavaVMAttachArgs args;
+    args.version = JNI_VERSION_1_2;
+    args.name = "JSC_Thread";
+    args.group = NULL;
+
+    void* ret = nullptr;
+
+    if (vm->AttachCurrentThread(&env, &args) == JNI_OK) {
+        ret = wtfThreadEntryPoint(param);
+        vm->DetachCurrentThread();
+    }
+
+    return ret;
+}
+
+ThreadIdentifier createThreadInternal(ThreadFunction entryPoint, void* data, const char* name)
+{
+    auto invocation = std::make_unique<ThreadFunctionInvocation>(entryPoint, data);
+    pthread_t threadHandle;
+    if (pthread_create(&threadHandle, 0, runThreadWithRegistration, invocation.get())) {
+        LOG_ERROR("Failed to create pthread at entry point %p with data %p", runThreadWithRegistration, invocation.get());
+        return 0;
+    }
+
+    // Balanced by std::unique_ptr constructor in runThreadWithRegistration.
+    ThreadFunctionInvocation* leakedInvocation = invocation.release();
+    UNUSED_PARAM(leakedInvocation);
+
+    return establishIdentifierForPthreadHandle(threadHandle);
+}
+#else
 ThreadIdentifier createThreadInternal(ThreadFunction entryPoint, void* data, const char*)
 {
     auto invocation = std::make_unique<ThreadFunctionInvocation>(entryPoint, data);
@@ -211,6 +258,7 @@ ThreadIdentifier createThreadInternal(ThreadFunction entryPoint, void* data, con
 
     return establishIdentifierForPthreadHandle(threadHandle);
 }
+#endif
 
 void initializeCurrentThreadInternal(const char* threadName)
 {

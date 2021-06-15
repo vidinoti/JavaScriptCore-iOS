@@ -36,12 +36,35 @@
 #include <wtf/HashSet.h>
 #include <wtf/WTFThreadData.h>
 
+#if PLATFORM(ANDROID)
+
+#include "VidiModules/Vision/VDARObject.h"
+
+namespace VDAR {
+
+    class RenderingEngine : public VDARObject {
+        
+    public:
+
+        void addTimer(const Timer t) ;
+
+        void removeTimer(unsigned int tID);
+        void recomputeTimers();
+
+        static RenderingEngine* getInstance();
+
+    };
+    
+}
+
+ #endif
+
 namespace JSC {
 
-#if USE(CF) || PLATFORM(BLACKBERRY)
+#if USE(CF) || PLATFORM(BLACKBERRY) || PLATFORM(ANDROID)
 
 static const double sweepTimeSlice = .01; // seconds
-static const double sweepTimeTotal = .10;
+static const double sweepTimeTotal = 1.0;
 static const double sweepTimeMultiplier = 1.0 / sweepTimeTotal;
 
 #if USE(CF)
@@ -90,6 +113,43 @@ void IncrementalSweeper::scheduleTimer()
 void IncrementalSweeper::cancelTimer()
 {
     m_timer.stop();
+}
+
+#elif PLATFORM(ANDROID)
+   
+IncrementalSweeper::IncrementalSweeper(Heap* heap)
+    : HeapTimer(heap->vm())
+    , m_currentBlockToSweepIndex(0)
+    , m_blocksToSweep(heap->m_blockSnapshot)
+{
+}
+
+PassOwnPtr<IncrementalSweeper> IncrementalSweeper::create(Heap* heap)
+{
+    return adoptPtr(new IncrementalSweeper(heap));
+}
+
+void IncrementalSweeper::scheduleTimer()
+{
+    assert((int)(sweepTimeSlice * sweepTimeMultiplier * 1000)>0);
+    m_timer->setNewDelay(sweepTimeSlice * sweepTimeMultiplier * 1000);
+
+    if(!scheduled) {
+        VDAR::RenderingEngine::getInstance()->addTimer(*m_timer);
+        scheduled=true;
+    } else {
+        VDAR::RenderingEngine::getInstance()->recomputeTimers();
+    }
+    
+}
+
+void IncrementalSweeper::cancelTimer()
+{
+    //10 years, won't fire until then
+    m_timer->setNewDelay(60 * 60 * 24 * 365 * 10);
+    if(scheduled) {
+        VDAR::RenderingEngine::getInstance()->recomputeTimers();
+    }
 }
 
 #endif

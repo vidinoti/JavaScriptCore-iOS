@@ -35,7 +35,7 @@
 #include <wtf/StdLibExtras.h>
 #endif
 
-#if OS(LINUX)
+#if OS(LINUX) && !OS(ANDROID)
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -45,10 +45,22 @@
 #endif
 
 namespace JSC {
+#if  OS(ANDROID)
+static int av_strstart(const char *str, const char *pfx, const char **ptr)
+{
+    while (*pfx && *pfx == *str) {
+        pfx++;
+        str++;
+    }
+    if (!*pfx && ptr)
+        *ptr = str;
+    return !*pfx;
+}
+#endif
 
 static bool isVFPPresent()
 {
-#if OS(LINUX)
+#if OS(LINUX) && !OS(ANDROID)
     int fd = open("/proc/self/auxv", O_RDONLY);
     if (fd > 0) {
         Elf32_auxv_t aux;
@@ -60,6 +72,36 @@ static bool isVFPPresent()
         }
         close(fd);
     }
+#elif  OS(ANDROID)
+    FILE *f = fopen("/proc/cpuinfo", "r");
+    char buf[200];
+
+    if (!f)
+        return false;
+
+    while (fgets(buf, sizeof(buf), f)) {
+        if (av_strstart(buf, "Features", NULL)) {
+            if (strstr(buf, " vfp ")){
+                fclose(f);
+                return true;
+            }
+            if (strstr(buf, " vfpv3 ")){
+                fclose(f);
+                return true;
+            }
+            if (strstr(buf, " neon ") || strstr(buf, " asimd ")){
+                fclose(f);
+                return true;
+            }
+            if (strstr(buf, " fp ")){ // Listed on 64 bit ARMv8 kernels
+                fclose(f);
+               return true;
+           }
+        }
+    }
+    fclose(f);
+    return false;
+
 #endif // OS(LINUX)
 
 #if (COMPILER(GCC) && defined(__VFP_FP__))

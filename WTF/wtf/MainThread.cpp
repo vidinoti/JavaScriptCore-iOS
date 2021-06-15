@@ -86,10 +86,12 @@ static FunctionQueue& functionQueue()
 
 
 #if !PLATFORM(MAC)
-
+    
+static bool initializedMainThread = false;
+    
 void initializeMainThread()
 {
-    static bool initializedMainThread;
+    
     if (initializedMainThread)
         return;
     initializedMainThread = true;
@@ -179,6 +181,20 @@ void dispatchFunctionsFromMainThread()
             break;
         }
     }
+}
+
+void resetMainThread() {
+    
+    if(!initializedMainThread)
+        return;
+    
+    MutexLocker locker(mainThreadFunctionQueueMutex());
+
+#if !PLATFORM(QT)
+    mainThreadIdentifier = currentThread();
+#endif
+
+    initializeMainThreadPlatform();
 }
 
 void callOnMainThread(MainThreadFunction* function, void* context)

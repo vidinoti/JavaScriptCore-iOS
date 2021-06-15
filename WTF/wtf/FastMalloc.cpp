@@ -402,6 +402,7 @@ FastMallocStatistics fastMallocStatistics()
 
 size_t fastMallocSize(const void* p)
 {
+    
 #if ENABLE(WTF_MALLOC_VALIDATION)
     return Internal::fastMallocValidationHeader(const_cast<void*>(p))->m_size;
 #elif OS(DARWIN)
@@ -503,6 +504,8 @@ static void* (*pthread_getspecific_function_pointer)(pthread_key_t) = pthread_ge
   
 #define DEFINE_double(name, value, meaning) \
   DEFINE_VARIABLE(double, name, value, meaning)
+
+#include "LoggerC.h"
 
 namespace WTF {
 
@@ -629,10 +632,33 @@ static ALWAYS_INLINE uint32_t freedObjectEndPoison()
 //-------------------------------------------------------------------
 // Configuration
 //-------------------------------------------------------------------
+
+//// Not all possible combinations of the following parameters make
+//// sense.  In particular, if kMaxSize increases, you may have to
+//// increase kNumClasses as well.
+//#if OS(DARWIN)
+//#    define K_PAGE_SHIFT PAGE_SHIFT
+//#    if (K_PAGE_SHIFT == 12)
+//#        define K_NUM_CLASSES 68
+//#    elif (K_PAGE_SHIFT == 14)
+//#        define K_NUM_CLASSES 77
+//#    else
+//#        error "Unsupported PAGE_SHIFT amount"
+//#    endif
+//#else
+//#    define K_PAGE_SHIFT 12
+//#    define K_NUM_CLASSES 68
+//#endif
+//static const size_t kPageShift  = K_PAGE_SHIFT;
+//static const size_t kPageSize   = 1 << kPageShift;
+//static const size_t kMaxSize    = 32u * 1024;
+//static const size_t kAlignShift = 3;
+//static const size_t kAlignment  = 1 << kAlignShift;
+//static const size_t kNumClasses = K_NUM_CLASSES;
     
     // Type that can hold the length of a run of pages
     typedef uintptr_t Length;
-    
+
     // Not all possible combinations of the following parameters make
     // sense.  In particular, if kMaxSize increases, you may have to
     // increase kNumClasses as well.
@@ -914,20 +940,20 @@ static int NumMoveSize(size_t size) {
 // Initialize the mapping arrays
 static void InitSizeClasses() {
 #if OS(DARWIN)
-    kPageShift = vm_page_shift;
-    switch (kPageShift) {
-        case 12:
-        kNumClasses = 68;
-        break;
-        case 14:
-        kNumClasses = 77;
-        break;
-        default:
-        CRASH();
-    };
-#else
-    kPageShift = 12;
+  kPageShift = vm_page_shift;
+  switch (kPageShift) {
+  case 12:
     kNumClasses = 68;
+    break;
+  case 14:
+    kNumClasses = 77;
+    break;
+  default:
+    CRASH();
+  };
+#else
+  kPageShift = 12;
+  kNumClasses = 68;
 #endif
     kPageSize = 1 << kPageShift;
     kMaxValidPages = (~static_cast<Length>(0)) >> kPageShift;
@@ -1162,6 +1188,7 @@ typedef uintptr_t PageID;
 // Convert byte size into pages.  This won't overflow, but may return
 // an unreasonably large value if bytes is huge enough.
 static inline Length pages(size_t bytes) {
+  ASSERT(kPageShift && kNumClasses && kPageSize);
   return (bytes >> kPageShift) +
       ((bytes & (kPageSize - 1)) > 0 ? 1 : 0);
 }
@@ -1169,6 +1196,7 @@ static inline Length pages(size_t bytes) {
 // Convert a user size into the number of bytes that will actually be
 // allocated
 static size_t AllocationSize(size_t bytes) {
+  ASSERT(kPageShift && kNumClasses && kPageSize);
   if (bytes > kMaxSize) {
     // Large object: we allocate an integral number of pages
     ASSERT(bytes <= (kMaxValidPages << kPageShift));
@@ -1669,7 +1697,7 @@ static Span sampled_objects;
 // Selector class -- general selector uses 3-level map
 template <int BITS> class MapSelector {
  public:
-  typedef TCMalloc_PageMap3<BITS-kPageShift> Type;
+  typedef TCMalloc_PageMap3<BITS-K_PAGE_SHIFT_MAX> Type;
   typedef PackedCache<BITS, uint64_t> CacheType;
 };
 
@@ -1793,6 +1821,7 @@ class TCMalloc_PageHeap {
 
   // Return number of free bytes in heap
   uint64_t FreeBytes() const {
+    ASSERT(kPageShift && kNumClasses && kPageSize);
     return (static_cast<uint64_t>(free_pages_) << kPageShift);
   }
 
@@ -2083,6 +2112,7 @@ ALWAYS_INLINE void TCMalloc_PageHeap::signalScavenger()
 
 void TCMalloc_PageHeap::scavenge()
 {
+    ASSERT(kPageShift && kNumClasses && kPageSize);
     size_t pagesToRelease = min_free_committed_pages_since_last_scavenge_ * kScavengePercentage;
     size_t targetPageCount = std::max<size_t>(kMinimumFreeCommittedPageCount, free_committed_pages_ - pagesToRelease);
 
@@ -4754,6 +4784,9 @@ FastMallocStatistics fastMallocStatistics()
 
 size_t fastMallocSize(const void* ptr)
 {
+    if (pageheap == NULL) TCMalloc_ThreadCache::InitModule();
+    ASSERT(kPageShift && kNumClasses && kPageSize);
+
 #if ENABLE(WTF_MALLOC_VALIDATION)
     return Internal::fastMallocValidationHeader(const_cast<void*>(ptr))->m_size;
 #else
@@ -4865,6 +4898,8 @@ public:
 
     int visit(void* ptr) const
     {
+        ASSERT(kPageShift && kNumClasses && kPageSize);
+        
         if (!ptr)
             return 1;
 

@@ -25,10 +25,20 @@
 #include "ObjectPrototype.h"
 #include "Operations.h"
 #include <time.h>
+#include <cmath>
 #include <wtf/Assertions.h>
 #include <wtf/MathExtras.h>
 #include <wtf/RandomNumber.h>
 #include <wtf/RandomNumberSeed.h>
+
+#if OS(ANDROID) && 0
+
+static double log2( double n )
+{
+    // log(n)/log(2) is log2.
+    return log( n ) / log( 2.0 );
+}
+#endif
 
 namespace JSC {
 

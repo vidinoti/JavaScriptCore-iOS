@@ -29,6 +29,9 @@
 #include <wtf/FilePrintStream.h>
 #include <wtf/WTFThreadData.h>
 #include <wtf/Threading.h>
+#if OS(ANDROID)
+#include <wtf/AndroidPrintStream.h>
+#endif
 
 #if OS(UNIX)
 #include <unistd.h>
@@ -83,7 +86,11 @@ static void initializeLogFileOnce()
     if (!file) {
         // Use placement new; this makes it easier to use dataLog() to debug
         // fastMalloc.
+#if OS(ANDROID)
+        file = new (fileData) AndroidPrintStream(stderr, FilePrintStream::Borrow);
+#else
         file = new (fileData) FilePrintStream(stderr, FilePrintStream::Borrow);
+#endif
     }
     
     setvbuf(file->file(), 0, _IONBF, 0); // Prefer unbuffered output, so that we get a full log upon crash or deadlock.

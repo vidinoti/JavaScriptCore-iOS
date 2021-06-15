@@ -33,6 +33,8 @@
 #include <CoreFoundation/CoreFoundation.h>
 #elif PLATFORM(BLACKBERRY)
 #include <BlackBerryPlatformTimer.h>
+#elif PLATFORM(ANDROID)
+#include <RenderingEngine/Timer.h>
 #elif PLATFORM(EFL)
 #if USE(EO)
 typedef struct _Eo_Opaque Ecore_Timer;
@@ -72,6 +74,10 @@ protected:
     void timerDidFire();
 
     BlackBerry::Platform::Timer<HeapTimer> m_timer;
+#elif PLATFORM(ANDROID)
+    VDAR::Timer *m_timer;
+    bool scheduled;
+    static void timerDidFire(VDAR::Timer * timer, void *lock);
 #elif PLATFORM(EFL)
     static bool timerEvent(void*);
     Ecore_Timer* add(double delay, void* agent);

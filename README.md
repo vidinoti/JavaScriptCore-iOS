@@ -13,6 +13,8 @@ Note however, that the source code of JSC was still modified:
 - It includes some API methods to work with Typed Arrays in native code. Have a look at the `API/JSTypedArray.h`, it declares three new API functions. The documentation for these functions can be found in this header file as well.
 - `Number.MIN_VALUE` was fixed to return `DBL_MIN` instead of `0` when the CPU has not enabled support denormal numbers.
 
+Code for Android has been added in `WTF/wtf/android`. The source code is copyright of The Android Open Source Project and licensed under Apache License, Version 2.0.
+
 ## Binaries
 
 A compiled version of the `libJavaScriptCore.a` for armv7, armv7s, arm64 and the Simulator can be found in the [source tree](https://github.com/phoboslab/Ejecta/tree/master/Source/lib) of the [Ejecta project](https://github.com/phoboslab/Ejecta).

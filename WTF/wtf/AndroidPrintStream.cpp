@@ -23,46 +23,27 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#ifndef IncrementalSweeper_h
-#define IncrementalSweeper_h
+#include "config.h"
+#include "AndroidPrintStream.h"
+#include <android/log.h>  
+ 
+namespace WTF {
 
-#include "HeapTimer.h"
-#include <wtf/PassOwnPtr.h>
-#include <wtf/Vector.h>
+AndroidPrintStream::AndroidPrintStream(FILE* file, AdoptionMode adoptionMode) : FilePrintStream(file,adoptionMode)
+{
 
-namespace JSC {
+}
 
-class Heap;
-class MarkedBlock;
+AndroidPrintStream::~AndroidPrintStream()
+{
 
-class IncrementalSweeper : public HeapTimer {
-public:
-    static PassOwnPtr<IncrementalSweeper> create(Heap*);
-    void startSweeping(Vector<MarkedBlock*>&);
-    JS_EXPORT_PRIVATE virtual void doWork() OVERRIDE;
-    void sweepNextBlock();
-    void willFinishSweeping();
+}
 
-protected:
-#if USE(CF)
-    JS_EXPORT_PRIVATE IncrementalSweeper(Heap*, CFRunLoopRef);
-#elif PLATFORM(BLACKBERRY) || PLATFORM(ANDROID)
-    IncrementalSweeper(Heap*);
-#else
-    IncrementalSweeper(VM*);
-#endif
-
-#if USE(CF) || PLATFORM(BLACKBERRY) || PLATFORM(ANDROID)
-private:
-    void doSweep(double startTime);
-    void scheduleTimer();
-    void cancelTimer();
+void AndroidPrintStream::vprintf(const char* format, va_list argList)
+{
     
-    unsigned m_currentBlockToSweepIndex;
-    Vector<MarkedBlock*>& m_blocksToSweep;
-#endif
-};
+    __android_log_vprint(ANDROID_LOG_DEBUG,"JSC",format,argList);
+}
 
-} // namespace JSC
+} // namespace WTF
 
-#endif

@@ -55,6 +55,8 @@ WTF_EXPORT_PRIVATE void setMainThreadCallbacksPaused(bool paused);
 
 WTF_EXPORT_PRIVATE bool isMainThread();
 
+WTF_EXPORT_PRIVATE void resetMainThread();
+    
 #if USE(WEB_THREAD)
 WTF_EXPORT_PRIVATE bool isWebThread();
 WTF_EXPORT_PRIVATE bool isUIThread();

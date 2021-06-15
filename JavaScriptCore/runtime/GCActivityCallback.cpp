@@ -42,11 +42,33 @@
 #include <wtf/MainThread.h>
 #endif
 
+ #if PLATFORM(ANDROID)
+ #include "Vision/VDARObject.h"
+
+namespace VDAR {
+
+    class RenderingEngine : public VDARObject {
+        
+    public:
+
+        void addTimer(const Timer t) ;
+
+        void removeTimer(unsigned int tID);
+        void recomputeTimers();
+
+        static RenderingEngine* getInstance();
+
+    };
+    
+}
+
+#endif
+
 namespace JSC {
 
 bool GCActivityCallback::s_shouldCreateGCTimer = true;
 
-#if USE(CF) || PLATFORM(EFL)
+#if USE(CF) || PLATFORM(EFL) || PLATFORM(ANDROID)
 
 const double gcTimeSlicePerMB = 0.01; // Percentage of CPU time we will spend to reclaim 1 MB
 const double maxGCTimeSlice = 0.05; // The maximum amount of CPU time we want to use for opportunistic timer-triggered collections.
@@ -75,6 +97,12 @@ DefaultGCActivityCallback::DefaultGCActivityCallback(Heap* heap, CFRunLoopRef ru
 #elif PLATFORM(EFL)
 DefaultGCActivityCallback::DefaultGCActivityCallback(Heap* heap)
     : GCActivityCallback(heap->vm(), WTF::isMainThread())
+    , m_delay(hour)
+{
+}
+#elif PLATFORM(ANDROID)
+DefaultGCActivityCallback::DefaultGCActivityCallback(Heap* heap)
+    : GCActivityCallback(heap->vm())
     , m_delay(hour)
 {
 }
@@ -130,6 +158,34 @@ void DefaultGCActivityCallback::cancelTimer()
 {
     m_delay = hour;
     stop();
+}
+#elif PLATFORM(ANDROID)
+void DefaultGCActivityCallback::scheduleTimer(double newDelay)
+{
+    /*if (newDelay * timerSlop > m_delay)
+        return;
+
+    m_delay = newDelay;
+
+    m_timer->setNewDelay(m_delay*1000);
+
+    if(!scheduled) {
+        VDAR::RenderingEngine::getInstance()->addTimer(*m_timer);
+        scheduled=true;
+    } else {
+        VDAR::RenderingEngine::getInstance()->recomputeTimers();
+    }*/
+}
+
+void DefaultGCActivityCallback::cancelTimer()
+{
+    /*m_delay = hour;
+
+    m_timer->setNewDelay(hour);
+
+    if(scheduled) {
+        VDAR::RenderingEngine::getInstance()->recomputeTimers();
+    }*/
 }
 #endif
 

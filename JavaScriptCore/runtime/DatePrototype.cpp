@@ -35,7 +35,7 @@
 #include "ObjectPrototype.h"
 #include "Operations.h"
 
-#if !PLATFORM(MAC) && HAVE(LANGINFO_H)
+#if !PLATFORM(MAC) && HAVE(LANGINFO_H) && !PLATFORM(ANDROID)
 #include <langinfo.h>
 #endif
 
